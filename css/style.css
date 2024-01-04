@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+
+:root {
+  --clr-main-bg: #F3F3F3;
+  --clr-border: #c4bcbc;
+  --clr-black: #111111;
+  --clr-player1: #83a5e8;
+  --clr-player2: #eab661;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: var(--clr-main-bg);
+  }
+
+.main-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin: 0 auto;
+    position: relative;
+}
+
+    .info-container {
+        border: 1px solid var(--clr-border);
+    }
+
+    .player1-text{
+        color: var(--clr-player1);
+    }
+
+    .player2-text{
+        color: var(--clr-player2);
+    }
+
+    .space-matrix-container {
+        border: 1px solid var(--clr-border);
+    }
+
+        .space-matrix-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .space {
+            width: 60px;
+            height: 60px;
+            border: 1px solid var(--clr-border);
+            margin: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+
+            .button {
+                width: 20px;
+                height: 20px;
+                border: 1px solid var(--clr-border);
+                background-color: var(--clr-black);
+                border-radius: 50%;
+
+                margin: 5px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-size: 2rem;
+                cursor: pointer;
+
+                z-index: 1;
+            }
+
+.owned-by-player1 {
+    background-color: var(--clr-player1);
+}
+
+.owned-by-player2 {
+    background-color: var(--clr-player2);
+}
