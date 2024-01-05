@@ -34,12 +34,57 @@ let player2LisArray = Array.from(player2Ul.children);
 
 let player1PiecesLeft = 9;
 let player2PiecesLeft = 9;
+let phase2 = false;
+let waitingForMovement = false;
+let buttonWaitingForMovement = null;
 
 initializePlayerCollections();
 
 
 for (let i = 0; i < buttonsList.length; i++) {
     buttonsList[i].addEventListener('click', (event) => {
+        // -------------------------------------------------------------------------------------------
+        // phase 2b
+        if (phase2) {
+            if(waitingForMovement){
+                if(player1){
+                    const possibleMovementPositionsList = calculatePossibleMovementPositions(buttonWaitingForMovement);
+
+                    // check if the clicked button is in the possible movement positions
+                    if(possibleMovementPositionsList.includes(buttonsList[i].classList[1])){
+                        // do actions
+
+                        // ToDo
+
+                    } else {
+                        infoContainer.innerHTML = "Not a possible movement";
+                    }
+
+                    waitingForMovement = false;
+                } else {
+                    const possibleMovementPositionsList = calculatePossibleMovementPositions(buttonWaitingForMovement);
+
+                    waitingForMovement = false;
+                }
+            }
+
+        // -------------------------------------------------------------------------------------------
+        // phase 2a
+            else {
+                if(player1) {
+                // if clicked on his own piece
+                if (player1Collection[buttonsList[i].classList[1]].owned) {
+                    waitingForMovement = true;
+                    buttonWaitingForMovement = buttonsList[i].classList[1];
+                    infoContainer.innerHTML = "Move your piece";
+                    return;
+                    }
+                }
+            }
+        }
+
+        // -------------------------------------------------------------------------------------------
+        // phase 1b
         if (currentlyRemovingAPiece) {
             if (player1) {
                 if (player2Collection[buttonsList[i].classList[1]].owned) {
@@ -80,6 +125,8 @@ for (let i = 0; i < buttonsList.length; i++) {
                     infoContainer.innerHTML = "Not owned by player 1";
                 }
             }
+        // -------------------------------------------------------------------------------------------
+        // phase 1a
         } else {
             try {
                 if (player1Collection[buttonsList[i].classList[1]].owned || player2Collection[buttonsList[i].classList[1]].owned) {
@@ -109,6 +156,11 @@ for (let i = 0; i < buttonsList.length; i++) {
                     if (checkFor3Pieces(player1)) {
                         currentlyRemovingAPiece = true;
                         return;
+                    }
+
+                    // check if phase 2
+                    if (player1PiecesLeft === 0 && player2PiecesLeft === 0) {
+                        phase2 = true;
                     }
 
                     // prepare for next turn
@@ -185,7 +237,6 @@ function addButtonToOwned(button, player1) {
 }
 
 
-// ToDo: check for 3 pieces only against the latest button clicked!
 function checkFor3Pieces(player1) {
     // check for 3 in a row
     if (player1) {
@@ -250,4 +301,39 @@ function isPartOf3InARow(button){
         }
     }
     return false;
+}
+
+
+function calculatePossibleMovementPositions(button) {
+    const possibleMovementPositionsList = [];
+
+    // check if the current key is in the Piece3Combinations
+    for (let i = 0; i < Piece3Combinations.length; i++) {
+        if (Piece3Combinations[i].includes(button)) {
+            // check position of the button inside the combination
+            const buttonPosition = Piece3Combinations[i].indexOf(button);
+
+            // check if the button on the right is free and existing
+            if(buttonPosition !== 2){
+                const buttonOnTheRight = Piece3Combinations[i][buttonPosition + 1];
+                if(!player1Collection[buttonOnTheRight].owned && !player2Collection[buttonOnTheRight].owned){
+                    // check if not already in the list
+                    if(!possibleMovementPositionsList.includes(buttonOnTheRight)){
+                        possibleMovementPositionsList.push(buttonOnTheRight);
+                    }
+                }// check if the button on the left is free and existing
+            } else if(buttonPosition !== 0){
+                const buttonOnTheLeft = Piece3Combinations[i][buttonPosition - 1];
+                if(!player1Collection[buttonOnTheLeft].owned && !player2Collection[buttonOnTheLeft].owned){
+                    // check if not already in the list
+                    if(!possibleMovementPositionsList.includes(buttonOnTheLeft)){
+                        possibleMovementPositionsList.push(buttonOnTheLeft);
+                    }
+                }
+            } else {
+                console.log('error');
+            }
+        }
+    }
+    return possibleMovementPositionsList;
 }
