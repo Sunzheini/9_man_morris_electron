@@ -33,8 +33,14 @@ initializePlayerCollections();
 for (let i = 0; i < buttonsList.length; i++) {
     buttonsList[i].addEventListener('click', (event) => {
         if (currentlyRemovingAPiece) {
-            if(player1) {
-                if(player2Collection[buttonsList[i].classList[1]].owned) {
+            if (player1) {
+                if (player2Collection[buttonsList[i].classList[1]].owned) {
+                    // check if it is not a part of a 3 in a row owned by the player so its locked
+                    if(isPartOf3InARow(buttonsList[i].classList[1])){
+                        infoContainer.innerHTML = "Part of 3 in a row";
+                        return;
+                    }
+
                     // remove the piece
                     buttonsList[i].classList.remove('owned-by-player2');
                     player2Collection[buttonsList[i].classList[1]].owned = false;
@@ -47,7 +53,13 @@ for (let i = 0; i < buttonsList.length; i++) {
                     infoContainer.innerHTML = "Not owned by player 2";
                 }
             } else {
-                if(player1Collection[buttonsList[i].classList[1]].owned) {
+                if (player1Collection[buttonsList[i].classList[1]].owned) {
+                    // check if it is not a part of a 3 in a row owned by the player so its locked
+                    if(isPartOf3InARow(buttonsList[i].classList[1])){
+                        infoContainer.innerHTML = "Part of 3 in a row";
+                        return;
+                    }
+
                     // remove the piece
                     buttonsList[i].classList.remove('owned-by-player1');
                     player1Collection[buttonsList[i].classList[1]].owned = false;
@@ -62,14 +74,20 @@ for (let i = 0; i < buttonsList.length; i++) {
             }
         } else {
             try {
-                if(player1Collection[buttonsList[i].classList[1]].owned || player2Collection[buttonsList[i].classList[1]].owned) {
+                if (player1Collection[buttonsList[i].classList[1]].owned || player2Collection[buttonsList[i].classList[1]].owned) {
                     infoContainer.innerHTML = "Already owned by a player";
                 } else {
                     // do actions
                     colorTheButton.call(buttonsList[i]);
                     addButtonToOwned(buttonsList[i], player1);
 
-                    if(checkFor3Pieces(player1)) {
+                    if (player1) {
+                        player1MoveSequence.push(buttonsList[i].classList[1]);
+                    } else {
+                        player2MoveSequence.push(buttonsList[i].classList[1]);
+                    }
+
+                    if (checkFor3Pieces(player1)) {
                         currentlyRemovingAPiece = true;
                         return;
                     }
@@ -151,55 +169,66 @@ function addButtonToOwned(button, player1) {
 // ToDo: check for 3 pieces only against the latest button clicked!
 function checkFor3Pieces(player1) {
     // check for 3 in a row
-    if(player1) {
-        // check the keys in player1Collection
-        for (let key in player1Collection) {
+    if (player1) {
+        const lastButtonClicked = player1MoveSequence[player1MoveSequence.length - 1];
 
-            // check if the current key is owned
-            if (player1Collection[key].owned) {
-                // check if the current key is in the Piece3Combinations
-                for (let i = 0; i < Piece3Combinations.length; i++) {
-                    if (Piece3Combinations[i].includes(key)) {
-                        // check if all 3 keys are owned
-                        if (player1Collection[Piece3Combinations[i][0]].owned &&
-                            player1Collection[Piece3Combinations[i][1]].owned &&
-                            player1Collection[Piece3Combinations[i][2]].owned) {
+        // check if the current key is in the Piece3Combinations
+        for (let i = 0; i < Piece3Combinations.length; i++) {
+            if (Piece3Combinations[i].includes(lastButtonClicked)) {
+                // check if all 3 keys are owned
+                if (player1Collection[Piece3Combinations[i][0]].owned &&
+                    player1Collection[Piece3Combinations[i][1]].owned &&
+                    player1Collection[Piece3Combinations[i][2]].owned) {
 
-                            // now check the player1WinSequence
-                            if(!player1MoveSequence.includes(Piece3Combinations[i])){
-                                player1MoveSequence.push(Piece3Combinations[i]);
-                                return true;
-                            }
-                        }
-                    }
+                    return true;
                 }
             }
         }
     } else {
-        // check the keys in player2Collection
-        for (let key in player2Collection) {
+        const lastButtonClicked = player2MoveSequence[player2MoveSequence.length - 1];
 
-            // check if the current key is owned
-            if (player2Collection[key].owned) {
-                // check if the current key is in the Piece3Combinations
-                for (let i = 0; i < Piece3Combinations.length; i++) {
-                    if (Piece3Combinations[i].includes(key)) {
-                        // check if all 3 keys are owned
-                        if (player2Collection[Piece3Combinations[i][0]].owned &&
-                            player2Collection[Piece3Combinations[i][1]].owned &&
-                            player2Collection[Piece3Combinations[i][2]].owned) {
+        // check if the current key is in the Piece3Combinations
+        for (let i = 0; i < Piece3Combinations.length; i++) {
+            if (Piece3Combinations[i].includes(lastButtonClicked)) {
+                // check if all 3 keys are owned
+                if (player2Collection[Piece3Combinations[i][0]].owned &&
+                    player2Collection[Piece3Combinations[i][1]].owned &&
+                    player2Collection[Piece3Combinations[i][2]].owned) {
 
-                            // now check the player2WinSequence
-                            if(!player2MoveSequence.includes(Piece3Combinations[i])){
-                                player2MoveSequence.push(Piece3Combinations[i]);
-                                return true;
-                            }
-                        }
-                    }
+                    return true;
                 }
             }
         }
     }
+    return false;
+}
 
+
+function isPartOf3InARow(button){
+    if(player1){
+        for (let i = 0; i < Piece3Combinations.length; i++) {
+            if (Piece3Combinations[i].includes(button)) {
+                // check if all 3 keys are owned by player 2
+                if (player2Collection[Piece3Combinations[i][0]].owned &&
+                    player2Collection[Piece3Combinations[i][1]].owned &&
+                    player2Collection[Piece3Combinations[i][2]].owned) {
+
+                    return true;
+                }
+            }
+        }
+    } else {
+        for (let i = 0; i < Piece3Combinations.length; i++) {
+            if (Piece3Combinations[i].includes(button)) {
+                // check if all 3 keys are owned by player 1
+                if (player1Collection[Piece3Combinations[i][0]].owned &&
+                    player1Collection[Piece3Combinations[i][1]].owned &&
+                    player1Collection[Piece3Combinations[i][2]].owned) {
+
+                    return true;
+                }
+            }
+        }
+    }
     return false;
 }

@@ -19,7 +19,7 @@ function createWindow() {
         slashes: true
     }));
 
-    win.webContents.openDevTools();  // uncomment to open dev tools!
+    // win.webContents.openDevTools();  // uncomment to open dev tools!
 
     win.on('closed', () => {
         win = null;
