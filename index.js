@@ -27,6 +27,14 @@ let currentlyRemovingAPiece = false;
 let player1MoveSequence = [];
 let player2MoveSequence = [];
 
+const player1Ul = document.getElementsByClassName('ul-player1')[0];
+const player2Ul = document.getElementsByClassName('ul-player2')[0];
+let player1LisArray = Array.from(player1Ul.children);
+let player2LisArray = Array.from(player2Ul.children);
+
+let player1PiecesLeft = 9;
+let player2PiecesLeft = 9;
+
 initializePlayerCollections();
 
 
@@ -80,6 +88,17 @@ for (let i = 0; i < buttonsList.length; i++) {
                     // do actions
                     colorTheButton.call(buttonsList[i]);
                     addButtonToOwned(buttonsList[i], player1);
+
+                    // expend a piece
+                    if (player1) {
+                        player1PiecesLeft--;
+                        // delete last li
+                        player1Ul.removeChild(player1LisArray[player1PiecesLeft]);
+                    } else {
+                        player2PiecesLeft--;
+                        // delete last li
+                        player2Ul.removeChild(player2LisArray[player2PiecesLeft]);
+                    }
 
                     if (player1) {
                         player1MoveSequence.push(buttonsList[i].classList[1]);

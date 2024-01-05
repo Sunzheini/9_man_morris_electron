@@ -74,6 +74,61 @@ body {
                 z-index: 1;
             }
 
+    .pieces-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 30px;
+
+        font-size: 1rem;
+
+        position: absolute;
+        top: 20px;
+        left: 20px;
+    }
+
+        .pieces {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .player-1-pieces {
+            color: var(--clr-player1);
+        }
+
+        .player-2-pieces {
+            color: var(--clr-player2);
+        }
+
+            .ul-pieces-container { }
+
+            .ul-player1 { }
+
+            .ul-player2 { }
+
+                .piece {
+                    min-width: 20px;
+                    height: 20px;
+                    border: 1px solid var(--clr-border);
+                    border-radius: 50%;
+                    color: var(--clr-black);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    font-size: 0.7rem;
+                }
+
+                .piece-player-1 {
+                    background-color: var(--clr-player1);
+                }
+
+                .piece-player-2 {
+                    background-color: var(--clr-player2);
+                }
+
 .owned-by-player1 {
     background-color: var(--clr-player1);
 }
@@ -81,3 +136,5 @@ body {
 .owned-by-player2 {
     background-color: var(--clr-player2);
 }
+
+
