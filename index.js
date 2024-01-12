@@ -1,339 +1,273 @@
+/**
+ * Imports
+ * In order to be able to use imports in index.js in index.html, put: type="module" in the script tag:
+ * <script type="module" src="index.js"></script>!
+ */
+import Piece3Combinations from './support/piece3CombinationsList.js';
+import createElement from './support/createDomElement.js';
+import {
+    initializePlayerCollectionsWithOwnedFalse,
+    checkAndReturnGameState,
+    writeMessageTo,
+    isOwnedPieceSelected,
+    isPartOf3InARow,
+    removeThePieceFromTheBoard,
+    colorTheButton,
+    addButtonToOwned,
+    checkFor3PiecesInARow,
+    calculatePossibleMovementPositions
+} from './support/functionsCollection.js';
+
+/**
+ * Selection of needed elements from the DOM
+ * The buttons initially look like: <button class="button button-row1-col4"></button>
+ * so their classList[1][10] is the row and classList[1][15] is the column
+ * @type {HTMLCollectionOf<Element>}
+ */
 const buttonsList = document.getElementsByClassName('button');
 let infoContainer = document.getElementsByClassName('info-container')[0];
+const player1UlOfPieces = document.getElementsByClassName('ul-player1')[0];
+const player2UlOfPieces = document.getElementsByClassName('ul-player2')[0];
+let player1LiArrayOfPieces = Array.from(player1UlOfPieces.children);
+let player2LiArrayOfPieces = Array.from(player2UlOfPieces.children);
 
-let player1 = true;
-let player1Collection = {};
-let player2Collection = {};
-const Piece3Combinations = [
-    ['button-row1-col1', 'button-row1-col4', 'button-row1-col7'],
-    ['button-row2-col2', 'button-row2-col4', 'button-row2-col6'],
-    ['button-row3-col3', 'button-row3-col4', 'button-row3-col5'],
-    ['button-row4-col1', 'button-row4-col2', 'button-row4-col3'],
-    ['button-row4-col5', 'button-row4-col6', 'button-row4-col7'],
-    ['button-row5-col3', 'button-row5-col4', 'button-row5-col5'],
-    ['button-row6-col2', 'button-row6-col4', 'button-row6-col6'],
-    ['button-row7-col1', 'button-row7-col4', 'button-row7-col7'],
-
-    ['button-row1-col1', 'button-row4-col1', 'button-row7-col1'],
-    ['button-row2-col2', 'button-row4-col2', 'button-row6-col2'],
-    ['button-row3-col3', 'button-row4-col3', 'button-row5-col3'],
-    ['button-row1-col4', 'button-row2-col4', 'button-row3-col4'],
-    ['button-row5-col4', 'button-row6-col4', 'button-row7-col4'],
-    ['button-row3-col5', 'button-row4-col5', 'button-row5-col5'],
-    ['button-row2-col6', 'button-row4-col6', 'button-row6-col6'],
-    ['button-row1-col7', 'button-row4-col7', 'button-row7-col7'],
-];
-let currentlyRemovingAPiece = false;
-let player1MoveSequence = [];
-let player2MoveSequence = [];
-
-const player1Ul = document.getElementsByClassName('ul-player1')[0];
-const player2Ul = document.getElementsByClassName('ul-player2')[0];
-let player1LisArray = Array.from(player1Ul.children);
-let player2LisArray = Array.from(player2Ul.children);
-
-let player1PiecesLeft = 9;
-let player2PiecesLeft = 9;
-let phase2 = false;
+/**
+ * Global states
+ */
+let itsPlayer1sTurn = true;
 let waitingForMovement = false;
 let buttonWaitingForMovement = null;
+let currentlyRemovingAPiece = false;
+let ItsPhase2 = false;
 
-initializePlayerCollections();
+/**
+ * Global collections
+ * @type {{}}, key is the 2nd class of the button, i.e. `button-row1-col4` and
+ * value is an object with the following properties: owned: boolean, row: string, col: string
+ * @type [], list of the buttons that the player has placed, using the 2nd class of the button,
+ * i.e. `button-row1-col4`
+ */
+let player1PlacedPiecesCollection = {};
+let player2PlacedPiecesCollection = {};
+let player1MovesHistory = [];
+let player2MoveHistory = [];
 
+/**
+ * Global counters
+ */
+let player1PiecesLeftToPlace = 9;
+let player2PiecesLeftToPlace = 9;
 
-for (let i = 0; i < buttonsList.length; i++) {
-    buttonsList[i].addEventListener('click', (event) => {
-        // -------------------------------------------------------------------------------------------
-        // phase 2b
-        if (phase2) {
-            if(waitingForMovement){
-                if(player1){
-                    const possibleMovementPositionsList = calculatePossibleMovementPositions(buttonWaitingForMovement);
+// -------------------------------------------------------------------------------------------
+/**
+ * Synchronous execution of the following code:
+ * 1. Initialize the player collections with the buttons with owned: false
+ * 2. Add event listeners to the buttons
+ */
+initializePlayerCollectionsWithOwnedFalse(buttonsList, player1PlacedPiecesCollection, player2PlacedPiecesCollection);
+addEventListenersToButtons(buttonsList);
 
-                    // check if the clicked button is in the possible movement positions
-                    if(possibleMovementPositionsList.includes(buttonsList[i].classList[1])){
-                        // do actions
-
-                        // ToDo
-
-                    } else {
-                        infoContainer.innerHTML = "Not a possible movement";
-                    }
-
-                    waitingForMovement = false;
-                } else {
-                    const possibleMovementPositionsList = calculatePossibleMovementPositions(buttonWaitingForMovement);
-
-                    waitingForMovement = false;
-                }
-            }
-
-        // -------------------------------------------------------------------------------------------
-        // phase 2a
-            else {
-                if(player1) {
-                // if clicked on his own piece
-                if (player1Collection[buttonsList[i].classList[1]].owned) {
-                    waitingForMovement = true;
-                    buttonWaitingForMovement = buttonsList[i].classList[1];
-                    infoContainer.innerHTML = "Move your piece";
-                    return;
-                    }
-                }
-            }
-        }
-
-        // -------------------------------------------------------------------------------------------
-        // phase 1b
-        if (currentlyRemovingAPiece) {
-            if (player1) {
-                if (player2Collection[buttonsList[i].classList[1]].owned) {
-                    // check if it is not a part of a 3 in a row owned by the player so its locked
-                    if(isPartOf3InARow(buttonsList[i].classList[1])){
-                        infoContainer.innerHTML = "Part of 3 in a row";
-                        return;
-                    }
-
-                    // remove the piece
-                    buttonsList[i].classList.remove('owned-by-player2');
-                    player2Collection[buttonsList[i].classList[1]].owned = false;
-
-                    // prepare for next turn
-                    player1 = !player1;
-                    changeInfoContainer();
-                    currentlyRemovingAPiece = false;
-                } else {
-                    infoContainer.innerHTML = "Not owned by player 2";
-                }
-            } else {
-                if (player1Collection[buttonsList[i].classList[1]].owned) {
-                    // check if it is not a part of a 3 in a row owned by the player so its locked
-                    if(isPartOf3InARow(buttonsList[i].classList[1])){
-                        infoContainer.innerHTML = "Part of 3 in a row";
-                        return;
-                    }
-
-                    // remove the piece
-                    buttonsList[i].classList.remove('owned-by-player1');
-                    player1Collection[buttonsList[i].classList[1]].owned = false;
-
-                    // prepare for next turn
-                    player1 = !player1;
-                    changeInfoContainer();
-                    currentlyRemovingAPiece = false;
-                } else {
-                    infoContainer.innerHTML = "Not owned by player 1";
-                }
-            }
-        // -------------------------------------------------------------------------------------------
-        // phase 1a
-        } else {
-            try {
-                if (player1Collection[buttonsList[i].classList[1]].owned || player2Collection[buttonsList[i].classList[1]].owned) {
-                    infoContainer.innerHTML = "Already owned by a player";
-                } else {
-                    // do actions
-                    colorTheButton.call(buttonsList[i]);
-                    addButtonToOwned(buttonsList[i], player1);
-
-                    // expend a piece
-                    if (player1) {
-                        player1PiecesLeft--;
-                        // delete last li
-                        player1Ul.removeChild(player1LisArray[player1PiecesLeft]);
-                    } else {
-                        player2PiecesLeft--;
-                        // delete last li
-                        player2Ul.removeChild(player2LisArray[player2PiecesLeft]);
-                    }
-
-                    if (player1) {
-                        player1MoveSequence.push(buttonsList[i].classList[1]);
-                    } else {
-                        player2MoveSequence.push(buttonsList[i].classList[1]);
-                    }
-
-                    if (checkFor3Pieces(player1)) {
-                        currentlyRemovingAPiece = true;
-                        return;
-                    }
-
-                    // check if phase 2
-                    if (player1PiecesLeft === 0 && player2PiecesLeft === 0) {
-                        phase2 = true;
-                    }
-
-                    // prepare for next turn
-                    player1 = !player1;
-                    changeInfoContainer();
-                }
-            } catch (e) {
-                infoContainer.innerHTML = e;
-            }
-        }
-    });
-}
-
-
-function colorTheButton() {
-    if (player1) {
-        // remove a class
-        this.classList.remove('owned-by-player2');
-        // add a class
-        this.classList.add('owned-by-player1');
-    } else {
-        // remove a class
-        this.classList.remove('owned-by-player1');
-        // add a class
-        this.classList.add('owned-by-player2');
-    }
-}
-
-
-function changeInfoContainer() {
-    if (player1) {
-        infoContainer.innerHTML = "Player 1's turn";
-        infoContainer.classList.remove('player2-text');
-        infoContainer.classList.add('player1-text');
-    } else {
-        infoContainer.innerHTML = "Player 2's turn";
-        infoContainer.classList.remove('player1-text');
-        infoContainer.classList.add('player2-text');
-    }
-}
-
-
-function initializePlayerCollections() {
+// -------------------------------------------------------------------------------------------
+/**
+ * Add event listeners to all the buttons
+ * @param buttonsList
+ */
+function addEventListenersToButtons(buttonsList) {
     for (let i = 0; i < buttonsList.length; i++) {
-        const currentButton = buttonsList[i];
-        const buttonRow = currentButton.classList[1][10]
-        const buttonCol = currentButton.classList[1][15]
-
-        player1Collection[buttonsList[i].classList[1]] = {
-            owned: false,
-            row: buttonRow,
-            col: buttonCol,
-        }
-
-        player2Collection[buttonsList[i].classList[1]] = {
-            owned: false,
-            row: buttonRow,
-            col: buttonCol,
-        }
+        buttonsList[i].addEventListener('click', decideWhichFunctionToExecute);
     }
 }
 
+/**
+ * Decide which function to execute depending on the global states
+ * @returns {void}
+ */
+function decideWhichFunctionToExecute(e) {
+    const targetButton = e.target
+    const i = Array.from(buttonsList).indexOf(targetButton)
+    const gameState = checkAndReturnGameState(ItsPhase2, waitingForMovement, currentlyRemovingAPiece, itsPlayer1sTurn);
 
-function addButtonToOwned(button, player1) {
-    if (player1) {
-        player1Collection[button.classList[1]].owned = true;
-        player1Collection[button.classList[1]].row = button.classList[1][10];
-        player1Collection[button.classList[1]].col = button.classList[1][15];
-    } else {
-        player2Collection[button.classList[1]].owned = true;
-        player2Collection[button.classList[1]].row = button.classList[1][10];
-        player2Collection[button.classList[1]].col = button.classList[1][15];
+    // -------------------------------------------------------------------------------------------
+    // ItsPhase2 && waitingForMovement && !currentlyRemovingAPiece && !itsPlayer1sTurn
+    if (gameState === 7) {
+        const possibleMovementPositionsList = calculatePossibleMovementPositions(buttonWaitingForMovement, player1PlacedPiecesCollection, player2PlacedPiecesCollection);
+        // check if the clicked button is in the possible movement positions
+        if (possibleMovementPositionsList.includes(buttonsList[i].classList[1])) {
+            // do actions
+            // ToDo
+        } else {
+            writeMessageTo("Not a possible movement", infoContainer, itsPlayer1sTurn);
+        }
+
+        // prepare for next turn
+        waitingForMovement = false;
+        return;
+
+    // -------------------------------------------------------------------------------------------
+    // ItsPhase2 && waitingForMovement && !currentlyRemovingAPiece && itsPlayer1sTurn
+    } else if (gameState === 8) {
+        const possibleMovementPositionsList = calculatePossibleMovementPositions(buttonWaitingForMovement, player2PlacedPiecesCollection, player1PlacedPiecesCollection);
+
+        // prepare for next turn
+        waitingForMovement = false;
+        return;
     }
-}
 
+    // -------------------------------------------------------------------------------------------
+    // ItsPhase2 && !waitingForMovement && !currentlyRemovingAPiece && !itsPlayer1sTurn
+    else if (gameState === 5) {
+        // if clicked on his own piece
+        if(isOwnedPieceSelected(buttonsList[i].classList[1], player1PlacedPiecesCollection)) {
 
-function checkFor3Pieces(player1) {
-    // check for 3 in a row
-    if (player1) {
-        const lastButtonClicked = player1MoveSequence[player1MoveSequence.length - 1];
-
-        // check if the current key is in the Piece3Combinations
-        for (let i = 0; i < Piece3Combinations.length; i++) {
-            if (Piece3Combinations[i].includes(lastButtonClicked)) {
-                // check if all 3 keys are owned
-                if (player1Collection[Piece3Combinations[i][0]].owned &&
-                    player1Collection[Piece3Combinations[i][1]].owned &&
-                    player1Collection[Piece3Combinations[i][2]].owned) {
-
-                    return true;
-                }
-            }
+            // prepare for next turn
+            waitingForMovement = true;
+            buttonWaitingForMovement = buttonsList[i].classList[1];
+            infoContainer.innerHTML = "Move your piece";
+            return;
         }
-    } else {
-        const lastButtonClicked = player2MoveSequence[player2MoveSequence.length - 1];
-
-        // check if the current key is in the Piece3Combinations
-        for (let i = 0; i < Piece3Combinations.length; i++) {
-            if (Piece3Combinations[i].includes(lastButtonClicked)) {
-                // check if all 3 keys are owned
-                if (player2Collection[Piece3Combinations[i][0]].owned &&
-                    player2Collection[Piece3Combinations[i][1]].owned &&
-                    player2Collection[Piece3Combinations[i][2]].owned) {
-
-                    return true;
-                }
-            }
-        }
+        return;
     }
-    return false;
-}
 
+    // -------------------------------------------------------------------------------------------
+    // ItsPhase2 && !waitingForMovement && !currentlyRemovingAPiece && itsPlayer1sTurn
+    else if (gameState === 6) {
+        // if clicked on his own piece
+        if(isOwnedPieceSelected(buttonsList[i].classList[1], player2PlacedPiecesCollection)) {
 
-function isPartOf3InARow(button){
-    if(player1){
-        for (let i = 0; i < Piece3Combinations.length; i++) {
-            if (Piece3Combinations[i].includes(button)) {
-                // check if all 3 keys are owned by player 2
-                if (player2Collection[Piece3Combinations[i][0]].owned &&
-                    player2Collection[Piece3Combinations[i][1]].owned &&
-                    player2Collection[Piece3Combinations[i][2]].owned) {
-
-                    return true;
-                }
-            }
+            // prepare for next turn
+            waitingForMovement = true;
+            buttonWaitingForMovement = buttonsList[i].classList[1];
+            infoContainer.innerHTML = "Move your piece";
+            return;
         }
-    } else {
-        for (let i = 0; i < Piece3Combinations.length; i++) {
-            if (Piece3Combinations[i].includes(button)) {
-                // check if all 3 keys are owned by player 1
-                if (player1Collection[Piece3Combinations[i][0]].owned &&
-                    player1Collection[Piece3Combinations[i][1]].owned &&
-                    player1Collection[Piece3Combinations[i][2]].owned) {
-
-                    return true;
-                }
-            }
-        }
+        return;
     }
-    return false;
-}
 
+    // -------------------------------------------------------------------------------------------
+    // !ItsPhase2 && !waitingForMovement && currentlyRemovingAPiece && itsPlayer1sTurn
+    else if (gameState === 3) {
+        // check if the piece is owned by player 2
+        if (isOwnedPieceSelected(buttonsList[i].classList[1], player2PlacedPiecesCollection)) {
 
-function calculatePossibleMovementPositions(button) {
-    const possibleMovementPositionsList = [];
-
-    // check if the current key is in the Piece3Combinations
-    for (let i = 0; i < Piece3Combinations.length; i++) {
-        if (Piece3Combinations[i].includes(button)) {
-            // check position of the button inside the combination
-            const buttonPosition = Piece3Combinations[i].indexOf(button);
-
-            // check if the button on the right is free and existing
-            if(buttonPosition !== 2){
-                const buttonOnTheRight = Piece3Combinations[i][buttonPosition + 1];
-                if(!player1Collection[buttonOnTheRight].owned && !player2Collection[buttonOnTheRight].owned){
-                    // check if not already in the list
-                    if(!possibleMovementPositionsList.includes(buttonOnTheRight)){
-                        possibleMovementPositionsList.push(buttonOnTheRight);
-                    }
-                }// check if the button on the left is free and existing
-            } else if(buttonPosition !== 0){
-                const buttonOnTheLeft = Piece3Combinations[i][buttonPosition - 1];
-                if(!player1Collection[buttonOnTheLeft].owned && !player2Collection[buttonOnTheLeft].owned){
-                    // check if not already in the list
-                    if(!possibleMovementPositionsList.includes(buttonOnTheLeft)){
-                        possibleMovementPositionsList.push(buttonOnTheLeft);
-                    }
-                }
-            } else {
-                console.log('error');
+            // check if it is not a part of a 3 in a row owned by the player so its locked
+            if (isPartOf3InARow(buttonsList[i].classList[1], player2PlacedPiecesCollection)) {
+                writeMessageTo("Part of 3 in a row", infoContainer, itsPlayer1sTurn);
+                return;
             }
+
+            // if not, remove the piece from the board
+            removeThePieceFromTheBoard(buttonsList[i], itsPlayer1sTurn, player2PlacedPiecesCollection)
+
+            // prepare for next turn
+            itsPlayer1sTurn = !itsPlayer1sTurn;
+            writeMessageTo("It's player2's turn", infoContainer, itsPlayer1sTurn);
+            currentlyRemovingAPiece = false;
+        } else {
+            writeMessageTo("Not owned by player 2", infoContainer, itsPlayer1sTurn);
         }
     }
-    return possibleMovementPositionsList;
+
+    // -------------------------------------------------------------------------------------------
+    // !ItsPhase2 && !waitingForMovement && currentlyRemovingAPiece && !itsPlayer1sTurn
+    else if (gameState === 4) {
+        // check if the piece is owned by player 1
+        if (isOwnedPieceSelected(buttonsList[i].classList[1], player1PlacedPiecesCollection)) {
+
+            // check if it is not a part of a 3 in a row owned by the player so its locked
+            if (isPartOf3InARow(buttonsList[i].classList[1], player1PlacedPiecesCollection)) {
+                writeMessageTo("Part of 3 in a row", infoContainer, itsPlayer1sTurn);
+                return;
+            }
+
+            // if not, remove the piece from the board
+            removeThePieceFromTheBoard(buttonsList[i], itsPlayer1sTurn, player1PlacedPiecesCollection)
+
+            // prepare for next turn
+            itsPlayer1sTurn = !itsPlayer1sTurn;
+            writeMessageTo("It's player1's turn", infoContainer, itsPlayer1sTurn);
+            currentlyRemovingAPiece = false;
+        } else {
+            writeMessageTo("Not owned by player 1", infoContainer, itsPlayer1sTurn);
+        }
+    }
+
+    // -------------------------------------------------------------------------------------------
+    // !ItsPhase2 && !waitingForMovement && !currentlyRemovingAPiece && itsPlayer1sTurn
+    else if (gameState === 1) {
+        // check if the piece is owned by player 1
+        if (isOwnedPieceSelected(buttonsList[i].classList[1], player1PlacedPiecesCollection)) {
+            writeMessageTo("Already owned by player 1", infoContainer, itsPlayer1sTurn);
+            return;
+        }
+
+        // check if the piece is owned by player 2
+        if (isOwnedPieceSelected(buttonsList[i].classList[1], player2PlacedPiecesCollection)) {
+            writeMessageTo("Already owned by player 2", infoContainer, itsPlayer1sTurn);
+            return;
+        }
+
+        // if it is not owned, do actions
+        colorTheButton(buttonsList[i], itsPlayer1sTurn);
+        addButtonToOwned(buttonsList[i], player1PlacedPiecesCollection);
+
+        // update number of pieces left to place
+        player1PiecesLeftToPlace--;
+        player1UlOfPieces.removeChild(player1LiArrayOfPieces[player1PiecesLeftToPlace]);
+        player1MovesHistory.push(buttonsList[i].classList[1]);
+
+        // check if there is a 3 in a row
+        if (checkFor3PiecesInARow(player1MovesHistory, player1PlacedPiecesCollection)) {
+            currentlyRemovingAPiece = true;
+            return;
+        }
+
+        // check if phase 2
+        if (player1PiecesLeftToPlace === 0 && player2PiecesLeftToPlace === 0) {
+            ItsPhase2 = true;
+        }
+
+        // prepare for next turn
+        itsPlayer1sTurn = !itsPlayer1sTurn;
+        writeMessageTo("It's player2's turn", infoContainer, itsPlayer1sTurn);
+    }
+
+    // -------------------------------------------------------------------------------------------
+    // !ItsPhase2 && !waitingForMovement && !currentlyRemovingAPiece && !itsPlayer1sTurn
+    else if (gameState === 2) {
+        // check if the piece is owned by player 1
+        if (isOwnedPieceSelected(buttonsList[i].classList[1], player1PlacedPiecesCollection)) {
+            writeMessageTo("Already owned by player 1", infoContainer, itsPlayer1sTurn);
+            return;
+        }
+
+        // check if the piece is owned by player 2
+        if (isOwnedPieceSelected(buttonsList[i].classList[1], player2PlacedPiecesCollection)) {
+            writeMessageTo("Already owned by player 2", infoContainer, itsPlayer1sTurn);
+            return;
+        }
+
+        // if it is not owned, do actions
+        colorTheButton(buttonsList[i], itsPlayer1sTurn);
+        addButtonToOwned(buttonsList[i], player2PlacedPiecesCollection);
+
+        // update number of pieces left to place
+        player2PiecesLeftToPlace--;
+        player2UlOfPieces.removeChild(player2LiArrayOfPieces[player2PiecesLeftToPlace]);
+        player2MoveHistory.push(buttonsList[i].classList[1]);
+
+        // check if there is a 3 in a row
+        if (checkFor3PiecesInARow(player2MoveHistory, player2PlacedPiecesCollection)) {
+            currentlyRemovingAPiece = true;
+            return;
+        }
+
+        // check if phase 2
+        if (player1PiecesLeftToPlace === 0 && player2PiecesLeftToPlace === 0) {
+            ItsPhase2 = true;
+        }
+
+        // prepare for next turn
+        itsPlayer1sTurn = !itsPlayer1sTurn;
+        writeMessageTo("It's player1's turn", infoContainer, itsPlayer1sTurn);
+    }
 }
